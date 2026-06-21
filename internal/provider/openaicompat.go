@@ -24,7 +24,7 @@ func New(baseURL, apiKey, model string) *OpenAICompat {
 	}
 }
 
-func (c *OpenAICompat) Chat(ctx context.Context, msg Message) (string, error) {
+func (c *OpenAICompat) Chat(ctx context.Context, messages []Message, tools []ToolDefinition) (Message, error) {
 	httpClient := c.HTTP
 	if httpClient == nil {
 		httpClient = http.DefaultClient
@@ -32,15 +32,16 @@ func (c *OpenAICompat) Chat(ctx context.Context, msg Message) (string, error) {
 
 	body, err := json.Marshal(ChatRequest{
 		Model:    c.Model,
-		Messages: []Message{msg},
+		Messages: messages,
+		Tools:    tools,
 	})
 	if err != nil {
-		return "", err
+		return Message{}, fmt.Errorf("openaicompat: marshaling request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("openaicompat: building request: %w", err)
+		return Message{}, fmt.Errorf("openaicompat: building request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -48,7 +49,7 @@ func (c *OpenAICompat) Chat(ctx context.Context, msg Message) (string, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("openaicompat: calling API: %w", err)
+		return Message{}, fmt.Errorf("openaicompat: calling API: %w", err)
 	}
 	defer func() {
 		_ = resp.Body.Close()
@@ -56,11 +57,11 @@ func (c *OpenAICompat) Chat(ctx context.Context, msg Message) (string, error) {
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("openaicompat: reading response body: %w", err)
+		return Message{}, fmt.Errorf("openaicompat: reading response body: %w", err)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", &Error{
+		return Message{}, &Error{
 			StatusCode: resp.StatusCode,
 			Body:       string(respBody),
 			Message:    fmt.Sprintf("openaicompat: API returned status %d", resp.StatusCode),
@@ -69,12 +70,12 @@ func (c *OpenAICompat) Chat(ctx context.Context, msg Message) (string, error) {
 
 	var parsed ChatResponse
 	if err = json.Unmarshal(respBody, &parsed); err != nil {
-		return "", fmt.Errorf("openaicompat: parsing response: %w (body: %s)", err, string(respBody))
+		return Message{}, fmt.Errorf("openaicompat: parsing response: %w (body: %s)", err, string(respBody))
 	}
 
 	if len(parsed.Choices) == 0 {
-		return "", fmt.Errorf("openaicompat: empty choices in response (body: %s)", string(respBody))
+		return Message{}, fmt.Errorf("openaicompat: empty choices in response (body: %s)", string(respBody))
 	}
 
-	return parsed.Choices[0].Message.Content, nil
+	return parsed.Choices[0].Message, nil
 }

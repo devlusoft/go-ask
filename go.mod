@@ -3,6 +3,7 @@ module github.com/devlusoft/go-ask
 go 1.25.5
 
 require (
+	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/charmbracelet/glamour v1.0.0
 	github.com/knadh/koanf/parsers/json v1.0.0
 	github.com/knadh/koanf/parsers/yaml v1.1.0

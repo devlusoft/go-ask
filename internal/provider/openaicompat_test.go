@@ -17,21 +17,21 @@ func TestOpenAICompat_Chat(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = io.WriteString(w, `{                                                                                                                                                                                     
-               "choices": [                                                                                                                                                                                                 
-                  {"message": {"role": "assistant", "content": "hello from mock"}}                                                                                                                                          
-               ]                                                                                                                                                                                                            
-            }`)
+			_, _ = io.WriteString(w, `{
+				"choices": [
+					{"message": {"role": "assistant", "content": "hello from mock"}}
+				]
+			}`)
 		}))
 		t.Cleanup(server.Close)
 
 		c := provider.New(server.URL, "test-key", "test-model")
-		got, err := c.Chat(context.Background(), provider.Message{
+		got, err := c.Chat(context.Background(), []provider.Message{{
 			Role:    provider.RoleUser,
 			Content: "hi",
-		})
+		}}, nil)
 		require.NoError(t, err)
-		require.Equal(t, "hello from mock", got)
+		require.Equal(t, "hello from mock", got.Content)
 	})
 
 	t.Run("should POST to {baseURL}/chat/completions", func(t *testing.T) {
@@ -45,10 +45,10 @@ func TestOpenAICompat_Chat(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		c := provider.New(server.URL, "test-key", "test-model")
-		_, err := c.Chat(context.Background(), provider.Message{
+		_, err := c.Chat(context.Background(), []provider.Message{{
 			Role:    provider.RoleUser,
 			Content: "hi",
-		})
+		}}, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.MethodPost, capturedMethod)
 		require.Equal(t, "/chat/completions", capturedPath)
@@ -64,10 +64,10 @@ func TestOpenAICompat_Chat(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		c := provider.New(server.URL, "test-key", "test-model")
-		_, err := c.Chat(context.Background(), provider.Message{
+		_, err := c.Chat(context.Background(), []provider.Message{{
 			Role:    provider.RoleUser,
 			Content: "hi",
-		})
+		}}, nil)
 		require.NoError(t, err)
 		require.Equal(t, "Bearer test-key", capturedAuth)
 	})
@@ -80,10 +80,10 @@ func TestOpenAICompat_Chat(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		c := provider.New(server.URL, "test-key", "test-model")
-		_, err := c.Chat(context.Background(), provider.Message{
+		_, err := c.Chat(context.Background(), []provider.Message{{
 			Role:    provider.RoleUser,
 			Content: "hi",
-		})
+		}}, nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "openaicompat")
 	})
@@ -97,10 +97,10 @@ func TestOpenAICompat_Chat(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		c := provider.New(server.URL, "bad-key", "test-model")
-		_, err := c.Chat(context.Background(), provider.Message{
+		_, err := c.Chat(context.Background(), []provider.Message{{
 			Role:    provider.RoleUser,
 			Content: "hi",
-		})
+		}}, nil)
 		require.Error(t, err)
 
 		var apiErr *provider.Error

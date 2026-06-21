@@ -143,10 +143,7 @@ func setupTestHome(t *testing.T) string {
 	t.Setenv("HOME", tempDir)
 	t.Setenv("XDG_CONFIG_HOME", tempDir)
 
-	configDir, err := os.UserConfigDir()
-	require.NoError(t, err)
-
-	return filepath.Join(configDir, "go-ask")
+	return filepath.Join(tempDir, ".config", "go-ask")
 }
 
 func writeConfigFile(t *testing.T, path, content string) {

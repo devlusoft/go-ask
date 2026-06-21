@@ -3,18 +3,32 @@ package ui
 import (
 	"fmt"
 	"os"
+	"sync"
 	"time"
 )
 
 var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-func ShowSpinner(message string, fn func() (string, error)) (string, error) {
+type statusLine struct {
+	mu sync.Mutex
+}
+
+func ShowSpinner(initial string, fn func(setStatus func(string)) (string, error)) (string, error) {
+	sl := &statusLine{}
+
+	current := initial
+	setStatus := func(msg string) {
+		sl.mu.Lock()
+		defer sl.mu.Unlock()
+		current = msg
+	}
+
 	done := make(chan struct{})
 	var result string
 	var err error
 
 	go func() {
-		result, err = fn()
+		result, err = fn(setStatus)
 		close(done)
 	}()
 
@@ -27,7 +41,10 @@ func ShowSpinner(message string, fn func() (string, error)) (string, error) {
 			_, _ = fmt.Fprintf(os.Stderr, "\r\033[K")
 			return result, err
 		case <-ticker.C:
-			_, _ = fmt.Fprintf(os.Stderr, "\r\033[K%s %s", spinnerFrames[i%len(spinnerFrames)], message)
+			sl.mu.Lock()
+			display := current
+			sl.mu.Unlock()
+			_, _ = fmt.Fprintf(os.Stderr, "\r\033[K%s %s", spinnerFrames[i%len(spinnerFrames)], display)
 			i++
 		}
 	}

@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/devlusoft/go-ask/internal/ui"
+	"github.com/stretchr/testify/require"
 )
 
 func TestShowSpinner(t *testing.T) {
 	t.Run("should call fn and return its result", func(t *testing.T) {
-		got, err := ui.ShowSpinner("loading", func() (string, error) {
+		got, err := ui.ShowSpinner("loading", func(setStatus func(string)) (string, error) {
 			return "hello", nil
 		})
 		if err != nil {
@@ -23,7 +24,7 @@ func TestShowSpinner(t *testing.T) {
 
 	t.Run("should propagate error from fn", func(t *testing.T) {
 		wantErr := errors.New("boom")
-		_, err := ui.ShowSpinner("loading", func() (string, error) {
+		_, err := ui.ShowSpinner("loading", func(setStatus func(string)) (string, error) {
 			return "", wantErr
 		})
 		if !errors.Is(err, wantErr) {
@@ -33,12 +34,24 @@ func TestShowSpinner(t *testing.T) {
 
 	t.Run("should return immediately when fn is fast", func(t *testing.T) {
 		start := time.Now()
-		_, _ = ui.ShowSpinner("loading", func() (string, error) {
+		_, _ = ui.ShowSpinner("loading", func(setStatus func(string)) (string, error) {
 			return "ok", nil
 		})
 		elapsed := time.Since(start)
 		if elapsed > 200*time.Millisecond {
 			t.Errorf("took %v, expected near-instant return for fast fn", elapsed)
 		}
+	})
+
+	t.Run("should update message dynamically via setStatus", func(t *testing.T) {
+		var setStatusFn func(string)
+		got, err := ui.ShowSpinner("initial", func(setStatus func(string)) (string, error) {
+			setStatusFn = setStatus
+			setStatusFn("updated")
+			time.Sleep(150 * time.Millisecond)
+			return "ok", nil
+		})
+		require.NoError(t, err)
+		require.Equal(t, "ok", got)
 	})
 }
