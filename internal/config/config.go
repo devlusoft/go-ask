@@ -23,9 +23,10 @@ var (
 )
 
 type Config struct {
-	APIKey  string `koanf:"api_key"`
-	BaseURL string `koanf:"base_url"`
-	Model   string `koanf:"model"`
+	APIKey          string `koanf:"api_key"`
+	BaseURL         string `koanf:"base_url"`
+	Model           string `koanf:"model"`
+	WebSearchAPIKey string `koanf:"web_search_api_key"`
 }
 
 func (c *Config) Validate() error {

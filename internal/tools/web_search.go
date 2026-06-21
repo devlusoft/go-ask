@@ -12,12 +12,14 @@ import (
 type WebSearch struct {
 	HTTP    *http.Client
 	BaseURL string
+	APIKey  string
 }
 
-func NewWebSearch() *WebSearch {
+func NewWebSearch(apiKey string) *WebSearch {
 	return &WebSearch{
 		HTTP:    http.DefaultClient,
 		BaseURL: "https://s.jina.ai/",
+		APIKey:  apiKey,
 	}
 }
 
@@ -63,6 +65,10 @@ func (t *WebSearch) Execute(_ context.Context, args json.RawMessage) (string, er
 		return "", fmt.Errorf("web_search: building request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
+
+	if t.APIKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", t.APIKey))
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

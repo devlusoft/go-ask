@@ -49,8 +49,8 @@ func Execute() {
 			mustRegister(r, tools.NewGlob())
 			mustRegister(r, tools.NewGitLog())
 			mustRegister(r, tools.NewGitDiff())
-			mustRegister(r, tools.NewWebSearch())
-			mustRegister(r, tools.NewFetchURL())
+			mustRegister(r, tools.NewWebSearch(cfg.WebSearchAPIKey))
+			mustRegister(r, tools.NewFetchURL(cfg.WebSearchAPIKey))
 
 			a := agent.New(p, r)
 

@@ -11,12 +11,14 @@ import (
 type FetchURL struct {
 	HTTP    *http.Client
 	BaseURL string
+	APIKey  string
 }
 
-func NewFetchURL() *FetchURL {
+func NewFetchURL(apiKey string) *FetchURL {
 	return &FetchURL{
 		HTTP:    http.DefaultClient,
 		BaseURL: "https://r.jina.ai/",
+		APIKey:  apiKey,
 	}
 }
 
@@ -60,6 +62,10 @@ func (t *FetchURL) Execute(_ context.Context, args json.RawMessage) (string, err
 		return "", fmt.Errorf("fetch_url: building request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
+
+	if t.APIKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", t.APIKey))
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
