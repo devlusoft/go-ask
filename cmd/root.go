@@ -8,6 +8,8 @@ import (
 
 	"github.com/devlusoft/go-ask/internal/config"
 	"github.com/devlusoft/go-ask/internal/provider"
+	"github.com/devlusoft/go-ask/internal/render"
+	"github.com/devlusoft/go-ask/internal/ui"
 	"github.com/urfave/cli/v3"
 )
 
@@ -35,9 +37,11 @@ func Execute() {
 			}
 
 			p := provider.New(cfg.BaseURL, cfg.APIKey, cfg.Model)
-			resp, err := p.Chat(ctx, provider.Message{
-				Role:    provider.RoleUser,
-				Content: args.First(),
+			resp, err := ui.ShowSpinner("Pensando...", func() (string, error) {
+				return p.Chat(ctx, provider.Message{
+					Role:    provider.RoleUser,
+					Content: args.First(),
+				})
 			})
 			if err != nil {
 				var apiErr *provider.Error
@@ -47,7 +51,12 @@ func Execute() {
 				return fmt.Errorf("calling LLM: %w", err)
 			}
 
-			fmt.Println(resp)
+			out := render.StripThinking(resp)
+			if rendered, rErr := render.Markdown(out); rErr == nil {
+				out = rendered
+			}
+
+			fmt.Println(out)
 			return nil
 		},
 	}
