@@ -51,14 +51,19 @@ func (c *Config) Validate() error {
 func Load() (*Config, error) {
 	k := koanf.New(".")
 
-	globalDir, err := os.UserConfigDir()
+	home, err := os.UserHomeDir()
 	if err != nil {
+		return nil, fmt.Errorf("config: resolving home dir: %w", err)
+	}
+
+	globalDir := filepath.Join(home, ".config", "go-ask")
+	if err = loadFile(k, filepath.Join(globalDir, "config.json")); err != nil {
 		return nil, fmt.Errorf("config: resolving user config dir: %w", err)
 	}
-	if err = loadFile(k, filepath.Join(globalDir, "go-ask", "config.json")); err != nil {
+	if err = loadFile(k, filepath.Join(globalDir, "config.json")); err != nil {
 		return nil, err
 	}
-	if err = loadFile(k, filepath.Join(globalDir, "go-ask", "config.yaml")); err != nil {
+	if err = loadFile(k, filepath.Join(globalDir, "config.yaml")); err != nil {
 		return nil, err
 	}
 
