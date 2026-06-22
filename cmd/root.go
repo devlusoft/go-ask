@@ -18,7 +18,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-const version = "0.1.0"
+const version = "0.1.1"
 
 func Execute() {
 	cmd := &cli.Command{
