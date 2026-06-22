@@ -33,7 +33,8 @@ go install github.com/devlusoft/go-ask@latest
 {
   "api_key": "<your-api-key>",
   "base_url": "<your-api-base-url>",
-  "model": "<your-model>"
+  "model": "<your-model>",
+  "web_search_api_key": "<your-jina-api-key>"
 }
 ```
 
