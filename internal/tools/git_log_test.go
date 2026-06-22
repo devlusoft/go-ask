@@ -20,7 +20,11 @@ func initGitRepo(t *testing.T) string {
 
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command("git", args...)
+	fullArgs := append([]string{
+		"-c", "user.email=test@example.com",
+		"-c", "user.name=Test",
+	}, args...)
+	cmd := exec.Command("git", fullArgs...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git %v failed: %v\n%s", args, err, out)
