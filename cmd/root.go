@@ -21,8 +21,15 @@ const version = "0.1.0"
 
 func Execute() {
 	cmd := &cli.Command{
-		Name:      "ask",
-		Usage:     "Agente CLI one-shot que investiga con tools read-only",
+		Name:  "ask",
+		Usage: "Agente CLI one-shot que investiga con tools read-only",
+		Flags: []cli.Flag{
+			&cli.IntFlag{
+				Name:    "max-iterations",
+				Aliases: []string{"max-iters"},
+				Usage:   "Maximum number of agent loop iterations. Default 10.",
+			},
+		},
 		Version:   version,
 		ErrWriter: os.Stderr,
 		Action: func(ctx context.Context, c *cli.Command) error {
@@ -53,6 +60,9 @@ func Execute() {
 			mustRegister(r, tools.NewFetchURL(cfg.WebSearchAPIKey))
 
 			a := agent.New(p, r)
+			if maxIters := c.Int("max-iterations"); maxIters > 0 {
+				a.MaxIters = maxIters
+			}
 
 			resp, err := ui.ShowSpinner("Pensando...", func(setStatus func(string)) (string, error) {
 				a.OnToolCall = func(name, args string) {

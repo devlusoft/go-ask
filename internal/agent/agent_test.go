@@ -102,7 +102,7 @@ func TestAgent_Run(t *testing.T) {
 		require.Equal(t, 2, p.callIdx)
 	})
 
-	t.Run("should return ErrMaxIterations when loop never produces final response", func(t *testing.T) {
+	t.Run("should give LLM a final chance when max iterations reached", func(t *testing.T) {
 		toolCall := provider.Message{
 			Role: provider.RoleAssistant,
 			ToolCalls: []provider.ToolCall{{
@@ -110,21 +110,28 @@ func TestAgent_Run(t *testing.T) {
 				Function: provider.ToolCallFunc{Name: "t1", Arguments: `{}`},
 			}},
 		}
-		responses := make([]provider.Message, 100)
+		responses := make([]provider.Message, 3)
 		for i := range responses {
 			responses[i] = toolCall
 		}
+		responses = append(responses, provider.Message{
+			Role:    provider.RoleAssistant,
+			Content: "best partial answer based on what I found",
+		})
+
 		p := &fakeProvider{responses: responses}
 		r := tools.NewRegistry()
 		require.NoError(t, r.Register(&fakeTool{name: "t1", out: "ok"}))
 		a := agent.New(p, r)
 		a.MaxIters = 3
 
-		_, err := a.Run(context.Background(), "loop forever")
-		require.ErrorIs(t, err, agent.ErrMaxIterations)
+		got, err := a.Run(context.Background(), "loop forever")
+		require.NoError(t, err)
+		require.Equal(t, "best partial answer based on what I found", got)
+		require.Equal(t, 4, p.callIdx)
 	})
 
-	t.Run("should propagate tool execution errors", func(t *testing.T) {
+	t.Run("should surface tool errors to the LLM as tool results", func(t *testing.T) {
 		p := &fakeProvider{responses: []provider.Message{
 			{
 				Role: provider.RoleAssistant,
@@ -133,6 +140,7 @@ func TestAgent_Run(t *testing.T) {
 					Function: provider.ToolCallFunc{Name: "broken", Arguments: `{}`},
 				}},
 			},
+			{Role: provider.RoleAssistant, Content: "I couldn't use that tool, sorry"},
 		}}
 		r := tools.NewRegistry()
 		require.NoError(t, r.Register(&fakeTool{name: "broken", err: errors.New("boom")}))

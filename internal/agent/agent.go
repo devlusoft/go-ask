@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/devlusoft/go-ask/internal/provider"
 	"github.com/devlusoft/go-ask/internal/tools"
@@ -16,7 +18,21 @@ var (
 
 const defaultMaxIterations = 10
 
-const defaultSystemPrompt = "You are a helpful assistant with access to tools. Use them when needed to answer the user's question."
+const defaultSystemPrompt = `You are go-ask, a one-shot CLI agent. You answer questions about the user's repository using read-only tools.
+
+Current date and time: %s
+Working directory: %s
+
+Available tools: read_file, list_files, grep, glob, git_log, git_diff, fetch_url, web_search.
+
+Behavior:
+- You give a complete, self-contained answer that fully resolves the user's question in this single response
+- You end with the answer, not with a question
+- You always assume this is the last interaction, so your response is the final answer
+- You answer in the same language the user used
+- You use tools (read_file, grep, etc.) whenever they help you answer accurately
+
+Your response is the final answer.`
 
 type Agent struct {
 	Provider     provider.Provider
@@ -27,11 +43,12 @@ type Agent struct {
 }
 
 func New(p provider.Provider, r *tools.Registry) *Agent {
+	cwd, _ := os.Getwd()
 	return &Agent{
 		Provider:     p,
 		Registry:     r,
 		MaxIters:     defaultMaxIterations,
-		SystemPrompt: defaultSystemPrompt,
+		SystemPrompt: fmt.Sprintf(defaultSystemPrompt, time.Now().Format("2006-01-02 15:04:05"), cwd),
 	}
 }
 
@@ -70,7 +87,7 @@ func (a *Agent) Run(ctx context.Context, prompt string) (string, error) {
 			}
 			result, tErr := a.executeTool(ctx, tc)
 			if tErr != nil {
-				return "", fmt.Errorf("agent: tool execution: %w", tErr)
+				result = fmt.Sprintf("error: %s", tErr)
 			}
 			messages = append(messages, provider.Message{
 				Role:       provider.RoleTool,
@@ -80,7 +97,16 @@ func (a *Agent) Run(ctx context.Context, prompt string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("%w (%d)", ErrMaxIterations, maxIters)
+	messages = append(messages, provider.Message{
+		Role:    provider.RoleUser,
+		Content: "You have reached the maximum number of iterations. Give your best answer based on the information you have so far.",
+	})
+
+	finalResp, err := a.Provider.Chat(ctx, messages, toolsDef)
+	if err != nil {
+		return "", fmt.Errorf("agent: final answer call: %w", err)
+	}
+	return finalResp.Content, nil
 }
 
 func (a *Agent) executeTool(ctx context.Context, tc provider.ToolCall) (string, error) {
