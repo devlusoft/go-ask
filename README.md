@@ -23,7 +23,7 @@ The LLM investigates your repo using read-only tools, then answers. Works with a
 # Install
 
 ```bash
-go install github.com/devlusoft/go-ask@latest
+go install github.com/devlusoft/go-ask/cmd/ask@latest
 ```
 
 # Configure
