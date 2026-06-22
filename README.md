@@ -13,6 +13,9 @@ $ ask "what is the last version of the x library?"
 
 $ ask "what is new in this reposity?"
 [response with git diff]
+
+$ some-comand | ask "how fix it?"
+[response with output of the command]
 ```
 
 The LLM investigates your repo using read-only tools, then answers. Works with any OpenAI-compatible provider

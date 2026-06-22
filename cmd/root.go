@@ -13,6 +13,7 @@ import (
 	"github.com/devlusoft/go-ask/internal/provider"
 	"github.com/devlusoft/go-ask/internal/render"
 	"github.com/devlusoft/go-ask/internal/tools"
+	"github.com/devlusoft/go-ask/internal/tty"
 	"github.com/devlusoft/go-ask/internal/ui"
 	"github.com/urfave/cli/v3"
 )
@@ -64,11 +65,22 @@ func Execute() {
 				a.MaxIters = maxIters
 			}
 
+			stdinContent, err := tty.ReadStdinIfPiped(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("reading stdin: %w", err)
+			}
+
+			prompt := args.First()
+			if stdinContent != "" {
+				prompt = stdinContent + "\n\nQuestion: " + prompt
+			}
+
 			resp, err := ui.ShowSpinner("Pensando...", func(setStatus func(string)) (string, error) {
 				a.OnToolCall = func(name, args string) {
 					setStatus(name + "(" + formatArgs(args) + ")")
 				}
-				return a.Run(ctx, args.First())
+
+				return a.Run(ctx, prompt)
 			})
 			if err != nil {
 				var apiErr *provider.Error

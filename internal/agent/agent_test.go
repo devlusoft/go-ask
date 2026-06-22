@@ -146,8 +146,8 @@ func TestAgent_Run(t *testing.T) {
 		require.NoError(t, r.Register(&fakeTool{name: "broken", err: errors.New("boom")}))
 		a := agent.New(p, r)
 
-		_, err := a.Run(context.Background(), "use broken")
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "boom")
+		got, err := a.Run(context.Background(), "use broken")
+		require.NoError(t, err)
+		require.Equal(t, "I couldn't use that tool, sorry", got)
 	})
 }
